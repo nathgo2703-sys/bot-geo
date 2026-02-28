@@ -406,15 +406,25 @@ Réponds UNIQUEMENT avec un JSON valide (sans texte avant ou après):
   "alerte": null
 }}"""
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+    import time
+    # gemini-1.5-flash-8b = limites gratuites très élevées (1500 req/jour)
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key={GEMINI_API_KEY}"
     body = json.dumps({
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"temperature": 0.7, "maxOutputTokens": 800}
     }).encode("utf-8")
-    req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        result = json.loads(resp.read().decode("utf-8"))
-    return result["candidates"][0]["content"]["parts"][0]["text"]
+    # Retry automatique si 429
+    for tentative in range(3):
+        try:
+            req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                result = json.loads(resp.read().decode("utf-8"))
+            return result["candidates"][0]["content"]["parts"][0]["text"]
+        except Exception as e:
+            if "429" in str(e) and tentative < 2:
+                time.sleep(5)  # attend 5 secondes et réessaie
+                continue
+            raise e
 
 def appliquer_consequences(data, pays_nom, action_description):
     pays = data["pays"][pays_nom]
