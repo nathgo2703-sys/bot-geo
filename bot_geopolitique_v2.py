@@ -14,7 +14,7 @@ import os
 import urllib.request
 import urllib.parse
 TOKEN = os.environ.get("TOKEN")
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -364,7 +364,7 @@ def appliquer_cycle_economique(data):
     save_data(data)
 
 # ============================================================
-# IA GEMINI (Google - 100% Gratuit)
+# IA GROQ (100% Gratuit - Très rapide)
 # ============================================================
 def analyser_action_ia(action, pays_nom, pays_data, contexte_mondial):
     infra_list = ", ".join([f"{k}x{v}" for k, v in pays_data.get("infrastructures", {}).items()])
@@ -406,25 +406,20 @@ Réponds UNIQUEMENT avec un JSON valide (sans texte avant ou après):
   "alerte": null
 }}"""
 
-    import time
-    # gemini-1.5-flash-8b = limites gratuites très élevées (1500 req/jour)
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    url = "https://api.groq.com/openai/v1/chat/completions"
     body = json.dumps({
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.7, "maxOutputTokens": 800}
+        "model": "llama-3.1-8b-instant",
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.7,
+        "max_tokens": 800
     }).encode("utf-8")
-    # Retry automatique si 429
-    for tentative in range(3):
-        try:
-            req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                result = json.loads(resp.read().decode("utf-8"))
-            return result["candidates"][0]["content"]["parts"][0]["text"]
-        except Exception as e:
-            if "429" in str(e) and tentative < 2:
-                time.sleep(5)  # attend 5 secondes et réessaie
-                continue
-            raise e
+    req = urllib.request.Request(url, data=body, headers={
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {GROQ_API_KEY}"
+    })
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        result = json.loads(resp.read().decode("utf-8"))
+    return result["choices"][0]["message"]["content"]
 
 def appliquer_consequences(data, pays_nom, action_description):
     pays = data["pays"][pays_nom]
