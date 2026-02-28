@@ -408,7 +408,7 @@ Réponds UNIQUEMENT avec un JSON valide (sans texte avant ou après):
 
     import time
     # gemini-1.5-flash-8b = limites gratuites très élevées (1500 req/jour)
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key={GEMINI_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
     body = json.dumps({
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"temperature": 0.7, "maxOutputTokens": 800}
